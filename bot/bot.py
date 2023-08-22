@@ -3,7 +3,7 @@ from sc2.data import Result
 
 
 class CompetitiveBot(BotAI):
-    NAME: str = "CompetitiveBot"
+    NAME: str = "RebelScum"
     """This bot's name"""
 
     RACE: Race = Race.Terran
