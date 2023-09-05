@@ -85,8 +85,10 @@ class CompetitiveBot(BotAI):
                 cc = ccs.first
                 # Can return None
                 #if worker and (await self.can_place(UnitTypeId.BARRACKS, [barracks_placement_position])[0]:
-                if self.can_afford(UnitTypeId.BARRACKS) and self.units(UnitTypeId.BARRACKS).amount < 6:
-                    await self.build(UnitTypeId.BARRACKS, near=cc);
+                if self.can_afford(UnitTypeId.BARRACKS) and self.units(UnitTypeId.BARRACKS).amount < 5:
+                    map_center = self.game_info.map_center
+                    position_towards_map_center = self.start_location.towards(map_center, distance=5)
+                    await self.build(UnitTypeId.BARRACKS, near=position_towards_map_center, placement_step=1)
 
     def find_target(self, state):
         if len(self.known_enemy_units) > 0:
@@ -97,7 +99,7 @@ class CompetitiveBot(BotAI):
             return self.enemy_start_locations[0]
 
     async def attack_enemy_location(self):
-        if self.units(UnitTypeId.MARINE).amount > 9:
+        if self.units(UnitTypeId.MARINE).amount > 12:
             #if len(self.known_enemy_units) > 0:
             for s in self.units(UnitTypeId.MARINE).idle:
                 #await self.do(s.attack(self.find_target(self.state)))
