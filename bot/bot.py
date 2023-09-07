@@ -36,15 +36,14 @@ class CompetitiveBot(BotAI):
         Populate this function with whatever your bot should do!
         """
 
-        # build scv first time around only
-        if iteration == 0:
-            await self.build_workers()
+        await self.build_workers()
 
         if self.workers.idle:
             await self.distribute_workers();
 
         await self.build_supply();
         await self.build_barracks();
+        await self.expand();
         await self.train_marines();
         await self.attack_enemy_location();
 
@@ -56,12 +55,8 @@ class CompetitiveBot(BotAI):
 
     async def build_workers(self):
         for cc in self.townhalls(UnitTypeId.COMMANDCENTER).ready.idle:
-            if self.can_afford(UnitTypeId.SCV):
+            if self.can_afford(UnitTypeId.SCV) and (self.units(UnitTypeId.SCV).amount / self.townhalls(UnitTypeId.COMMANDCENTER).amount) < 16:
                 cc.train(UnitTypeId.SCV)
-
-    async def expand(self):
-        if self.townhalls(UnitTypeId.COMMANDCENTER).amount < 3 and self.can_afford(UnitTypeId.COMMANDCENTER):
-            await self.expand_now()
 
     async def build_supply(self):
         ccs = self.townhalls(UnitTypeId.COMMANDCENTER).ready
@@ -69,7 +64,7 @@ class CompetitiveBot(BotAI):
             cc = ccs.first
             if self.supply_left < 4 and not self.already_pending(UnitTypeId.SUPPLYDEPOT):
                 if self.can_afford(UnitTypeId.SUPPLYDEPOT):
-                    await self.build(UnitTypeId.SUPPLYDEPOT, near=cc.position.towards(self.game_info.map_center, 5))
+                    await self.build(UnitTypeId.SUPPLYDEPOT, near=cc.position.towards(self.game_info.map_center, 2))
                     # await self.distribute_workers();
 
     async def train_marines(self):
@@ -83,12 +78,15 @@ class CompetitiveBot(BotAI):
             ccs = self.townhalls(UnitTypeId.COMMANDCENTER).ready
             if ccs.exists:
                 cc = ccs.first
-                # Can return None
-                #if worker and (await self.can_place(UnitTypeId.BARRACKS, [barracks_placement_position])[0]:
-                if self.can_afford(UnitTypeId.BARRACKS) and self.units(UnitTypeId.BARRACKS).amount < 5:
+                if self.can_afford(UnitTypeId.BARRACKS) and self.units(UnitTypeId.BARRACKS).amount < 11:
                     map_center = self.game_info.map_center
                     position_towards_map_center = self.start_location.towards(map_center, distance=5)
-                    await self.build(UnitTypeId.BARRACKS, near=position_towards_map_center, placement_step=1)
+                    await self.build(UnitTypeId.BARRACKS, near=position_towards_map_center, placement_step=3)
+
+    async def expand(self):
+        if not self.already_pending(UnitTypeId.COMMANDCENTER):
+            if self.townhalls(UnitTypeId.COMMANDCENTER).amount < 2 and self.can_afford(UnitTypeId.COMMANDCENTER):
+                await self.expand_now()
 
     def find_target(self, state):
         if len(self.known_enemy_units) > 0:
@@ -99,11 +97,12 @@ class CompetitiveBot(BotAI):
             return self.enemy_start_locations[0]
 
     async def attack_enemy_location(self):
-        if self.units(UnitTypeId.MARINE).amount > 12:
+        if self.units(UnitTypeId.MARINE).amount > 14:
             #if len(self.known_enemy_units) > 0:
-            for s in self.units(UnitTypeId.MARINE).idle:
+            for unit in self.units(UnitTypeId.MARINE).idle:
                 #await self.do(s.attack(self.find_target(self.state)))
-                self.do(s.attack(self.enemy_start_locations[0]))
+                #self.do(s.attack(self.enemy_start_locations[0]))
+                unit.attack(self.enemy_location)
             # TODO: implement your fight logic here
             # if unit.weapon_cooldown != 0:
             #     unit.move(u.position.towards(self.start_location))
