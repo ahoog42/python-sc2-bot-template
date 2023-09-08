@@ -1,3 +1,5 @@
+from typing import List, Tuple
+from sc2.position import Point2, Point3
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
 from sc2.ids.unit_typeid import UnitTypeId
@@ -17,6 +19,21 @@ class CompetitiveBot(BotAI):
         Race.Protoss
         Race.Random
     """
+
+    def select_target(self) -> Tuple[Point2, bool]:
+        """ Select an enemy target the units should attack. """
+        targets: Units = self.enemy_structures
+        if targets:
+            return targets.random.position, True
+
+        targets: Units = self.enemy_units
+        if targets:
+            return targets.random.position, True
+
+        if self.units and min((u.position.distance_to(self.enemy_start_locations[0]) for u in self.units)) < 5:
+            return self.enemy_start_locations[0].position, False
+
+        return self.mineral_field.random.position, False
 
     def __init__(self):
         super().__init__()
@@ -80,7 +97,7 @@ class CompetitiveBot(BotAI):
                 cc = ccs.first
                 if self.can_afford(UnitTypeId.BARRACKS) and self.units(UnitTypeId.BARRACKS).amount < 11:
                     map_center = self.game_info.map_center
-                    position_towards_map_center = self.start_location.towards(map_center, distance=5)
+                    position_towards_map_center = self.start_location.towards(map_center, distance=7)
                     await self.build(UnitTypeId.BARRACKS, near=position_towards_map_center, placement_step=3)
 
     async def expand(self):
@@ -88,21 +105,16 @@ class CompetitiveBot(BotAI):
             if self.townhalls(UnitTypeId.COMMANDCENTER).amount < 2 and self.can_afford(UnitTypeId.COMMANDCENTER):
                 await self.expand_now()
 
-    def find_target(self, state):
-        if len(self.known_enemy_units) > 0:
-            return random.choice(self.known_enemy_units)
-        elif len(self.known_enemy_structures) > 0:
-            return random.choice(self.known_enemy_structures)
-        else:
-            return self.enemy_start_locations[0]
 
     async def attack_enemy_location(self):
         if self.units(UnitTypeId.MARINE).amount > 14:
+            target, target_is_enemy_unit = self.select_target()
             #if len(self.known_enemy_units) > 0:
             for unit in self.units(UnitTypeId.MARINE).idle:
                 #await self.do(s.attack(self.find_target(self.state)))
                 #self.do(s.attack(self.enemy_start_locations[0]))
-                unit.attack(self.enemy_location)
+                #unit.attack(self.enemy_location)
+                unit.attack(target)
             # TODO: implement your fight logic here
             # if unit.weapon_cooldown != 0:
             #     unit.move(u.position.towards(self.start_location))
